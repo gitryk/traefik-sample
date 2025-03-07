@@ -1,0 +1,52 @@
+[global]
+    sendAnonymousUsage = false
+    checkNewVersion = true
+
+[api]
+    dashboard = true
+    insecure = true
+    debug = true
+
+[log]
+    level = "DEBUG"
+    filePath = "/etc/traefik/logs/log-file.log"
+
+[accessLog]
+    filePath = "/etc/traefik/logs/access.log"
+    [AccessLog.filters]
+        statusCodes = ["200", "300-302"]
+        retryAttempts = true
+        minDuration = "10ms"
+
+[entryPoints]
+    [entryPoints.web]
+        address = ":80"
+
+    [entryPoints.web.http.redirections]
+        [entryPoints.web.http.redirections.entryPoint]
+            to = "websecure"
+            scheme = "https"
+            permanent = true
+
+    [entryPoints.websecure]
+        address = ":443"
+        [entryPoints.websecure.http3]
+            advertisedPort = 443
+
+[certificatesResolvers.cf-tls.acme]
+    email = "your mail"
+    storage = "/tls/acme.json"
+    [certificatesResolvers.cf-tls.acme.dnsChallenge]
+        provider = "cloudflare"
+        resolvers = ["1.1.1.1:53"]
+
+[providers]
+    [providers.file]
+        watch = true
+        filename = "/etc/traefik/dynamic.toml"
+  
+    [providers.docker]
+        endpoint = "unix:///var/run/docker.sock"
+        exposedByDefault = false
+        network = "traefik-network"
+        watch = true

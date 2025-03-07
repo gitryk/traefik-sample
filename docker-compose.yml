@@ -1,0 +1,41 @@
+services:
+  traefik:
+    image: traefik:v3.3
+    hostname: traefik
+    container_name: treafik
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    networks:
+      - traefik-network
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./traefik/traefik.toml:/etc/traefik/traefik.toml
+      - ./traefik/dynamic.toml:/etc/traefik/dynamic.toml
+      - ./traefik/tls:/tls
+      - ./traefik/log:/etc/traefik/logs
+    environment:
+      - PUID=1000
+      - PGID=100
+      - CF_API_EMAIL=${CF_EMAIL}
+      - CF_DNS_API_TOKEN=${CF_DNS}
+      - CF_ZONE_API_TOKEN=${CF_ZONE}
+
+  tinyauth:
+    image: ghcr.io/steveiliop56/tinyauth:latest
+    container_name: tinyauth
+    hostname: tinyauth
+    networks:
+      - traefik-network
+    environment:
+      - PUID=1000
+      - PGID=100
+      - SECRET=${AUTH_SECRET}
+      - APP_URL=${AUTH_URL}
+      - GOOGLE_CLIENT_ID=${AUTH_GOOGLE_ID}
+      - GOOGLE_CLIENT_SECRET=${AUTH_GOOGLE_SECRET}
+      
+networks:
+  traefik-network:
+    name: "traefik-network"

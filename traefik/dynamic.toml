@@ -1,0 +1,54 @@
+[http]
+    [http.routers]
+	[http.routers.dashboard]
+	    entryPoints = ["web", "websecure"]
+	    service = "dashboard"
+	    middlewares = ["auth"]
+	    rule = "Host(`dashboard.test.domain`)"
+            [http.routers.dashboard.tls]
+		certResolver = "cf-tls"
+
+        [http.routers.auth]
+            entryPoints = ["web", "websecure"]
+            service = "auth"
+            rule = "Host(`auth.test.domain`)"
+            [http.routers.auth.tls]
+                certResolver = "cf-tls"
+
+    [http.middlewares]
+	[http.middlewares.auth.forwardAuth]
+	    address = "http://tinyauth:3000/api/auth/traefik"
+
+        [http.middlewares.websocket.headers.customRequestHeaders]
+            X-Forwarded-Proto = "https, wss"
+        
+        [http.middlewares.www-to-Root.redirectRegex]
+            regex = "^https?://www\\.(.+)"
+            replacement = "https://${1}"
+            permanent = true
+
+        [http.middlewares.security-headers.headers]
+            browserXssFilter = true
+            contentTypeNosniff = true
+            forceSTSHeader = true
+            sslRedirect = true
+            stsSeconds = 604800
+
+        [http.middlewares.compress-1024.compress]
+            minResponseBodyBytes = 1024
+    
+    [http.services]
+	[http.services.dashboard.loadBalancer]
+	    [[http.services.dashboard.loadBalancer.servers]]
+		url = "http://[your server ip]:8080"
+
+	[http.services.auth.loadBalancer]
+            [[http.services.auth.loadBalancer.servers]]
+		url = "http://tinyauth:3000"
+
+[tls.stores]
+    [tls.stores.default.defaultGeneratedCert]
+	resolver = "cf-tls"
+	[tls.stores.default.defaultGeneratedCert.domain]
+	    main = "test.domain"
+	    sans = ["*.test.domain"]
