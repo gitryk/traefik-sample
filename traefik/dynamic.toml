@@ -18,29 +18,11 @@
     [http.middlewares]
 	[http.middlewares.auth.forwardAuth]
 	    address = "http://tinyauth:3000/api/auth/traefik"
-
-        [http.middlewares.websocket.headers.customRequestHeaders]
-            X-Forwarded-Proto = "https, wss"
-        
-        [http.middlewares.www-to-Root.redirectRegex]
-            regex = "^https?://www\\.(.+)"
-            replacement = "https://${1}"
-            permanent = true
-
-        [http.middlewares.security-headers.headers]
-            browserXssFilter = true
-            contentTypeNosniff = true
-            forceSTSHeader = true
-            sslRedirect = true
-            stsSeconds = 604800
-
-        [http.middlewares.compress-1024.compress]
-            minResponseBodyBytes = 1024
     
     [http.services]
 	[http.services.dashboard.loadBalancer]
 	    [[http.services.dashboard.loadBalancer.servers]]
-		url = "http://[your server ip]:8080"
+		url = "http://[your traefik ip]:8080"
 
 	[http.services.auth.loadBalancer]
             [[http.services.auth.loadBalancer.servers]]
