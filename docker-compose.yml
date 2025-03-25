@@ -2,7 +2,7 @@ services:
   traefik:
     image: traefik:v3.3.4
     hostname: traefik
-    container_name: treafik
+    container_name: traefik
     networks:
       - traefik-network
     environment:
