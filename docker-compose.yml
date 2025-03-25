@@ -1,0 +1,55 @@
+services:
+  traefik:
+    image: traefik:v3.3.4
+    hostname: traefik
+    container_name: treafik
+    networks:
+      - traefik-network
+    environment:
+      - TZ=Asia/Seoul
+      - DOMAIN=${DOMAIN}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml
+      - ./traefik/dynamic.yml:/etc/traefik/dynamic.yml
+      - ./traefik/tls:/etc/traefik/tls
+      - ./traefik/log:/etc/traefik/logs
+
+  nginx:
+    image: nginx:stable-alpine
+    hostname: nginx-rtn
+    container_name: nginx-rtn
+    networks:
+      - traefik-network 
+    volumes:
+      - ./traefik/err:/usr/share/nginx/html:ro
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    hostname: cloudflared
+    command: --config /etc/cloudflared/config.yml tunnel --no-autoupdate run
+    networks:
+      - traefik-network
+    volumes:
+      - ./cloudflared:/etc/cloudflared
+
+  tinyauth:
+    image: ghcr.io/steveiliop56/tinyauth:latest
+    container_name: tinyauth
+    hostname: tinyauth
+    networks:
+      - traefik-network
+    environment:
+      - SECRET=${AUTH_SECRET}
+      - APP_URL=https://auth.${DOMAIN}
+      - GOOGLE_CLIENT_ID=${AUTH_GOOGLE_ID}
+      - GOOGLE_CLIENT_SECRET=${AUTH_GOOGLE_SECRET}
+      - OAUTH_WHITELIST=${AUTH_WHITELIST}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.tinyauth.loadBalancer.server.port=3000"
+      
+networks:
+  traefik-network:
+    name: "traefik-network"

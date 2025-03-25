@@ -1,0 +1,88 @@
+http:
+#Start Router
+  routers:
+    global-catch-all:
+      entryPoints:
+        - websecure
+      service: error
+      middlewares:
+        - error-pages
+        - secure-stack
+      rule: "PathPrefix(`/`)"      
+      tls: {}
+      priority: 0
+
+    dashboard: #CAUTION: It is very dangerous to just expose the dashboard.
+      entryPoints:
+        - websecure
+      service: api@internal
+      middlewares:
+        - error-pages
+        - secure-stack
+        - auth
+      rule: 'Host(`dashboard.{{ env "DOMAIN" }}`)' 
+      tls: {}
+
+    auth:
+      entryPoints:
+        - websecure
+      service: tinyauth@docker
+      middlewares:
+        - error-pages
+        - secure-stack
+      rule: 'Host(`auth.{{ env "DOMAIN" }}`)' 
+      tls: {}
+    
+#Start Services
+  services:
+    error:
+      loadBalancer:
+        servers:
+          - url: "http://nginx-rtn:80"
+
+#Start Middlewares
+  middlewares:
+    auth:
+      forwardAuth:
+        address: "http://tinyauth:3000/api/auth/traefik"
+    
+    
+###### Default Middlewares ######
+    error-pages:
+      errors:
+        status:
+          - "400-599"
+        service: error
+        query: "/err.html"
+    compress:
+      compress: {}
+
+    ratelimit:
+      rateLimit:
+        average: 50
+        burst: 100
+
+    secure-headers:
+      headers:
+        stsSeconds: 63072000
+        stsIncludeSubdomains: true
+        stsPreload: true
+        frameDeny: true 
+        contentTypeNosniff: true
+        browserXssFilter: true
+        referrerPolicy: "strict-origin-when-cross-origin"
+        permissionsPolicy: "geolocation=()"
+
+    secure-headers-custom:
+      headers:
+        customResponseHeaders:
+          Content-Security-Policy: "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'"
+
+    # Chain for Integrated middleware
+    secure-stack:
+      chain:
+        middlewares:
+          - compress
+          - ratelimit
+          - secure-headers
+          - secure-headers-custom
