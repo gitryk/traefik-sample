@@ -2,43 +2,32 @@ http:
 #Start Router
   routers:
     global-catch-all:
-      entryPoints:
-        - websecure
+      entryPoints: [websecure]
       service: error
-      middlewares:
-        - error-pages
-        - secure-stack
+      middlewares: [error-pages, secure-stack]
       rule: "PathPrefix(`/`)"      
       tls: {}
       priority: 0
 
-    dashboard: #CAUTION: It is very dangerous to just expose the dashboard.
-      entryPoints:
-        - websecure
+    dashboard:
+      entryPoints: [websecure]
       service: api@internal
-      middlewares:
-        - error-pages
-        - secure-stack
-        - auth
+      middlewares: [error-pages, secure-stack, auth]
       rule: 'Host(`dashboard.{{ env "DOMAIN" }}`)' 
       tls: {}
 
     auth:
-      entryPoints:
-        - websecure
+      entryPoints: [websecure]
       service: tinyauth@docker
-      middlewares:
-        - error-pages
-        - secure-stack
+      middlewares: [error-pages, secure-stack]
       rule: 'Host(`auth.{{ env "DOMAIN" }}`)' 
       tls: {}
-    
+
 #Start Services
   services:
     error:
       loadBalancer:
-        servers:
-          - url: "http://nginx-rtn:80"
+        servers: [{ url: "http://nginx-rtn:80" }]
 
 #Start Middlewares
   middlewares:
@@ -54,8 +43,8 @@ http:
           - "400-599"
         service: error
         query: "/err.html"
-    compress:
-      compress: {}
+    
+    compress: { compress: {} }
 
     ratelimit:
       rateLimit:
@@ -64,10 +53,10 @@ http:
 
     secure-headers:
       headers:
-        stsSeconds: 63072000
+        stsSeconds: 15552000
         stsIncludeSubdomains: true
         stsPreload: true
-        frameDeny: true 
+        frameDeny: true
         contentTypeNosniff: true
         browserXssFilter: true
         referrerPolicy: "strict-origin-when-cross-origin"
@@ -78,11 +67,11 @@ http:
         customResponseHeaders:
           Content-Security-Policy: "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'"
 
-    # Chain for Integrated middleware
+    secure-headers-truenas:
+      headers:
+        customResponseHeaders:
+          Content-Security-Policy: "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:;"
+
     secure-stack:
       chain:
-        middlewares:
-          - compress
-          - ratelimit
-          - secure-headers
-          - secure-headers-custom
+        middlewares: [compress, ratelimit, secure-headers, secure-headers-custom]
