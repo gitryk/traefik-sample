@@ -39,8 +39,7 @@ http:
 ###### Default Middlewares ######
     error-pages:
       errors:
-        status:
-          - "400-599"
+        status: ["400-599"]
         service: error
         query: "/err.html"
     
